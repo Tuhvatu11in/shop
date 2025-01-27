@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Customers</title>
+    <title>Products</title>
     <link rel="stylesheet" href="styles.css">
 </head>
 <body>
@@ -15,32 +15,93 @@
         <li><a href="orders.html">Orders</a></li>
     </ul>
 </nav>
-<h1>Customers</h1>
-<div id="customers-list" class="list-container"></div>
+<h1>Products</h1>
+
+<h2>Add New Product</h2>
+<form id="add-product-form">
+    <input type="text" id="product-name" placeholder="Product Name" required><br>
+    <textarea id="product-description" placeholder="Description"></textarea><br>
+    <input type="number" id="product-price" placeholder="Price" step="0.01" required><br>
+    <button type="submit">Add Product</button>
+</form>
+
+<div id="products-list" class="list-container"></div>
 
 <script>
-    async function fetchCustomers() {
+    async function fetchProducts() {
         try {
-            const response = await fetch('http://localhost:8080/customers');
+            const response = await fetch('http://localhost:8080/products');
             if (!response.ok) {
                 throw new Error(`HTTP error! status: ${response.status}`);
             }
-            const customers = await response.json();
-            const customerList = document.getElementById('customers-list');
-            customers.forEach(customer => {
-                const customerCard = document.createElement('div');
-                customerCard.className = 'card';
-                customerCard.innerHTML = `
-                            <h2>${customer.firstName} ${customer.lastName}</h2>
-                            <p>Email: ${customer.email}</p>
+            const products = await response.json();
+            const productList = document.getElementById('products-list');
+            productList.innerHTML = '';
+            products.forEach(product => {
+                const productCard = document.createElement('div');
+                productCard.className = 'card';
+                productCard.innerHTML = `
+                            <h2>${product.name}</h2>
+                            <p>Description: ${product.description}</p>
+                            <p>Price: $${product.price}</p>
+                             <button class="delete-product" data-id="${product.id}">Delete</button>
                         `;
-                customerList.appendChild(customerCard);
+                productList.appendChild(productCard);
+            });
+            // Добавляем обработчики событий на кнопку удаления
+            document.querySelectorAll('.delete-product').forEach(button => {
+                button.addEventListener('click', (e) => {
+                    const productId = e.target.getAttribute('data-id');
+                    deleteProduct(productId);
+                });
             });
         } catch (error) {
-            console.error('Error fetching customers:', error);
+            console.error('Error fetching products:', error);
         }
     }
-    fetchCustomers();
+
+    async function addProduct(event) {
+        event.preventDefault();
+        const name = document.getElementById('product-name').value;
+        const description = document.getElementById('product-description').value;
+        const price = parseFloat(document.getElementById('product-price').value);
+
+        const newProduct = { name, description, price };
+        try {
+            const response = await fetch('http://localhost:8080/products', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(newProduct),
+            });
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+            fetchProducts();
+            document.getElementById('add-product-form').reset();
+        } catch (error) {
+            console.error('Error adding product:', error);
+        }
+    }
+
+    async function deleteProduct(id) {
+        try {
+            const response = await fetch(`http://localhost:8080/products/${id}`, {
+                method: 'DELETE',
+            });
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+            fetchProducts(); // Обновляем список продуктов после удаления
+        } catch (error) {
+            console.error('Error deleting product:', error);
+        }
+    }
+
+
+    document.getElementById('add-product-form').addEventListener('submit', addProduct);
+    fetchProducts();
 </script>
 </body>
 </html>
